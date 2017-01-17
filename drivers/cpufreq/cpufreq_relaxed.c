@@ -19,7 +19,11 @@
 
 /* Relaxed version macros */
 #define RELAXED_VERSION_MAJOR			(1)
+<<<<<<< HEAD
 #define RELAXED_VERSION_MINOR			(3)
+=======
+#define RELAXED_VERSION_MINOR			(1)
+>>>>>>> 99209d3... relaxed: Fix boost_level if statement
 
 /* Relaxed governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(98)
