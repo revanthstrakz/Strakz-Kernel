@@ -573,6 +573,8 @@ if (!enable_si_ws && !strcmp(ws->name, "sensor_ind"))
 
  if (!enable_wlan_wake_ws && !strcmp(ws->name, "wlan_wake"))
  return;
+	if (WARN(wakeup_source_not_registered(ws), "unregistered wakeup source\n"))
+	return;
 
 	/*
 	 * active wakeup source should bring the system
