@@ -1447,6 +1447,9 @@ static void fan5405_external_power_changed(struct power_supply *psy)
 	            // Set vBUS Current-Limit (mA) as per DT.
                     pr_info("Using Quick Charge USB-Current (mA) %d", DT_Current);
                     chip->set_ivbus_max = DT_Current;
+	            // Set vBUS Current-Limit (mA) to 1000 mA.
+                    pr_info("Using Quick Charge USB-Current (mA) %d", 1000);
+                    chip->set_ivbus_max = 1000;
 		    // Store USB-Current (mA) Value Correctly.
 		    chip->chg_curr_max = chip->set_ivbus_max;
 		    chip->chg_curr_now = chip->chg_curr_max;
@@ -1486,6 +1489,10 @@ static void fan5405_external_power_changed(struct power_supply *psy)
 		      // Set vBUS Current-Limit (mA) as per DT.
 		      chip->set_ivbus_max = DT_Current;
 		      // Set Current (mA) as per DT.
+		      pr_info("Using Default AC-Current (mA) %d", 1000);
+		      // Set vBUS Current-Limit (mA) to Standard Value i.e., 1000 mA. 
+		      chip->set_ivbus_max = 1000;
+		      // Set Current (mA) to 1000 mA (as per DTB).    
 		      chip->chg_curr_max = chip->set_ivbus_max;
 		      chip->chg_curr_now = chip->chg_curr_max;
 	  	      // Store Charging-Type i.e., 1 for AC.
@@ -1507,7 +1514,6 @@ static void fan5405_external_power_changed(struct power_supply *psy)
 
 	power_supply_changed(&chip->batt_psy);
 	pr_info("current_limit = %d\n", chip->set_ivbus_max);
-
 }
 
 static void fan5405_set_charged(struct power_supply *psy)
