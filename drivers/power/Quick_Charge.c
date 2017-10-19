@@ -5,6 +5,7 @@
  * 1.5A Output is Required.
  *
  * Copyright (c) 2017, Shoaib Anwar <Shoaib0595@gmail.com>.
+ * Modified by Panchajanya Sarkar <rsk52959@gmail.com>
  *
  * Based on ThunderCharge Current Control, by Varun Chitre <varun.chitre15@gmail.com>.
  *
@@ -17,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/Quick_Charge.h>
 
-#define ENABLED			1
+#define ENABLED			0
 #define QUICK_CHARGE		"Quick_Charge"
 #define AC_CURRENT		1000
 
@@ -77,7 +78,7 @@ void batt_level (int Battery_Status)
 	{
 	    // Mechanism of Driver to Allocate Current (mA).
 	    if (Battery_Percent >= 0 && Battery_Percent <= 60)
-	       Dynamic_Current = 1500;
+	       Dynamic_Current = 1450;
 	    else if (Battery_Percent >= 61 && Battery_Percent <= 90)
 		    Dynamic_Current = 1250;
 	    else if (Battery_Percent >= 91 && Battery_Percent <= 100)
