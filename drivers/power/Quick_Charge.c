@@ -1,11 +1,10 @@
-/* Quick Charge v1.0, a Fast-Charge Driver Based on the Idea of Qualcomm's 
+/* Quick Charge v2.0, a Fast-Charge Driver Based on the Idea of Qualcomm's 
  * Quick-Charge Technology.
  *
  * For this Driver to Work properly, a Wall-Charger Capable of Supplying 
  * 1.5A Output is Required.
  *
  * Copyright (c) 2017, Shoaib Anwar <Shoaib0595@gmail.com>.
- * Modified by Panchajanya Sarkar <rsk52959@gmail.com>
  *
  * Based on ThunderCharge Current Control, by Varun Chitre <varun.chitre15@gmail.com>.
  *
@@ -18,7 +17,7 @@
 #include <linux/module.h>
 #include <linux/Quick_Charge.h>
 
-#define ENABLED			0
+#define ENABLED			1
 #define QUICK_CHARGE		"Quick_Charge"
 #define AC_CURRENT		1000
 
@@ -36,6 +35,8 @@ int Charging_Profile;
 int Battery_Percent;
 // Variable to Store a Copy of IC-Vendor's ID-Code.
 int IC_Code;
+// Variable to Store Different Values of Custom Current (mA).
+int custom_current = 1370;
 
 // Function to Read IC-Vendor's Name and Select Default Charging-Profile accordingly.
 void ic_vendor (int Name)
@@ -68,22 +69,28 @@ void batt_level (int Battery_Status)
 	{
 	   // Mechanism of Driver to Allocate Current (mA).
  	   if (Battery_Percent >= 0 && Battery_Percent <= 60)
-	      Dynamic_Current = 1250;
+	      Dynamic_Current = 500;
 	   else if (Battery_Percent >= 61 && Battery_Percent <= 90)
-		   Dynamic_Current = 1125;
+		   Dynamic_Current = 500;
 	   else if (Battery_Percent >= 91 && Battery_Percent <= 100)
-  	           Dynamic_Current = 1000;
+  	           Dynamic_Current = 500;
 	}
-	else
+	else if (Charging_Profile == 1)
 	{
 	    // Mechanism of Driver to Allocate Current (mA).
 	    if (Battery_Percent >= 0 && Battery_Percent <= 60)
-	       Dynamic_Current = 1450;
+	       Dynamic_Current = 1500;
 	    else if (Battery_Percent >= 61 && Battery_Percent <= 90)
 		    Dynamic_Current = 1250;
 	    else if (Battery_Percent >= 91 && Battery_Percent <= 100)
   	            Dynamic_Current = 1000;
 	}
+	else if (Charging_Profile == 2)
+	{
+	      Dynamic_Current = custom_current;
+	}
+		
+	
 }
 
 // Function to Read the Status (Charger Connected or Dis-Connected) of Charging.
@@ -142,7 +149,7 @@ static ssize_t charging_profile_store(struct kobject *kobj, struct kobj_attribut
 	
 	sscanf (buf, "%d", &val);
 	
-	if (val < 0 || val > 1)
+	if (val < 0 || val > 2)
 	   return EINVAL;
 
 	Charging_Profile = val;
@@ -150,6 +157,22 @@ static ssize_t charging_profile_store(struct kobject *kobj, struct kobj_attribut
 	// Call Battery (%) Status-Reader Function to Update Dynamic Current (mA) Value.	
 	batt_level (Battery_Percent);
 
+	return count;
+}
+
+static ssize_t custom_current_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d", custom_current);
+}
+
+static ssize_t custom_current_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int usercurrent;
+	sscanf(buf, "%d", &usercurrent);
+	if(QC_Toggle == 1 && usercurrent <= 1500 && usercurrent  >= 1000)
+		custom_current = usercurrent;
+	else
+		pr_info("%s: disabled or limit reached, ignoring\n", QUICK_CHARGE);
 	return count;
 }
 
@@ -171,11 +194,18 @@ static struct kobj_attribute charging_profile_attribute =
 		charging_profile_show,
 		charging_profile_store);
 
+static struct kobj_attribute custom_current_attribute =
+	__ATTR(custom_current,
+		0666,
+		custom_current_show,
+		custom_current_store);
+ 
 static struct attribute *charger_control_attrs[] =
 	{
 		&qc_toggle_attribute.attr,
 		&actual_current_attribute.attr,
 		&charging_profile_attribute.attr,
+		&custom_current_attribute.attr,
 		NULL,
 	};
 	
