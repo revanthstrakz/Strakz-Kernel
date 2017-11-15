@@ -1166,7 +1166,7 @@ void setup_new_exec(struct linux_binprm * bprm)
 	   group */
 
 	current->self_exec_id++;
-			
+
 	flush_signal_handlers(current, 0);
 }
 EXPORT_SYMBOL(setup_new_exec);
@@ -1338,8 +1338,8 @@ static void bprm_fill_uid(struct linux_binprm *bprm)
 	}
 }
 
-/* 
- * Fill the binprm structure from the inode. 
+/*
+ * Fill the binprm structure from the inode.
  * Check permissions, then read the first 128 (BINPRM_BUF_SIZE) bytes
  *
  * This may be called multiple times for binary chains (scripts for example).
