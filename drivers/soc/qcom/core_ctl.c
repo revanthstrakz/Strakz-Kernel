@@ -83,10 +83,10 @@ struct cpu_data {
 	struct task_struct *hotplug_thread;
 	struct kobject kobj;
 	struct list_head pending_lru;
-	bool cctoggle;
+	bool disabled;
 	bool always_online_cpu;
 };
-int gswitch;
+
 static DEFINE_PER_CPU(struct cpu_data, cpu_state);
 static DEFINE_SPINLOCK(state_lock);
 static DEFINE_SPINLOCK(pending_lru_lock);
@@ -96,21 +96,6 @@ static void apply_need(struct cpu_data *f);
 static void wake_up_hotplug_thread(struct cpu_data *state);
 static void add_to_pending_lru(struct cpu_data *state);
 static void update_lru(struct cpu_data *state);
-static void __ref cpu_online_wrapper(int cpu)
-{
-        if (!cpu_online(cpu))
-		cpu_up(cpu);
-}
-
-#ifdef CONFIG_AiO_HotPlug
-extern int AiO_HotPlug;
-#endif
-#ifdef CONFIG_ALUCARD_HOTPLUG
-extern int alucard;
-#endif
-#ifdef CONFIG_ARB_THERMAL
-extern int TEMP_SAFETY;
-#endif
 
 /* ========================= sysfs interface =========================== */
 
@@ -397,7 +382,7 @@ static ssize_t show_global_state(struct cpu_data *state, char *buf)
 					"\tNeed CPUs: %u\n", c->need_cpus);
 		count += snprintf(buf + count, PAGE_SIZE - count,
 					"\tStatus: %s\n",
-					c->cctoggle ? "enabled" : "disabled");
+					c->disabled ? "disabled" : "enabled");
 	}
 
 	return count;
@@ -444,49 +429,31 @@ static ssize_t show_not_preferred(struct cpu_data *state, char *buf)
 	return count;
 }
 
-static ssize_t store_cctoggle(struct cpu_data *state,
+static ssize_t store_disable(struct cpu_data *state,
 				const char *buf, size_t count)
 {
 	unsigned int val;
 
 	if (kstrtouint(buf, 0, &val))
 		return -EINVAL;
-	#ifdef CONFIG_AiO_HotPlug
-    if (AiO_HotPlug)
-		return -EINVAL;
-    #endif		
-    #ifdef CONFIG_ALUCARD_HOTPLUG
-	if (alucard)
-	   return -EINVAL; 
-    #endif
-    #ifdef CONFIG_ARB_THERMAL   
-    if (TEMP_SAFETY)
-		return -EINVAL;
-    #endif
-	val = !!val;
-	
-	gswitch = val;
 
-	if (state->cctoggle == val)
+	val = !!val;
+
+	if (state->disabled == val)
 		return count;
 
-	state->cctoggle = val;
+	state->disabled = val;
 
-	if (!state->cctoggle)
+	if (!state->disabled)
 		wake_up_hotplug_thread(state);
-		
-    if (state->cctoggle)
-	{
-	   int cpu;
-	   for_each_possible_cpu(cpu)
-       cpu_online_wrapper(cpu);
-	} 
+
+
 	return count;
 }
 
-static ssize_t show_cctoggle(struct cpu_data *state, char *buf)
+static ssize_t show_disable(struct cpu_data *state, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%u\n", state->cctoggle);
+	return snprintf(buf, PAGE_SIZE, "%u\n", state->disabled);
 }
 
 static ssize_t store_always_online_cpu(struct cpu_data *state,
@@ -557,7 +524,7 @@ core_ctl_attr_ro(need_cpus);
 core_ctl_attr_ro(online_cpus);
 core_ctl_attr_ro(global_state);
 core_ctl_attr_rw(not_preferred);
-core_ctl_attr_rw(cctoggle);
+core_ctl_attr_rw(disable);
 core_ctl_attr_rw(always_online_cpu);
 
 static struct attribute *default_attrs[] = {
@@ -574,7 +541,7 @@ static struct attribute *default_attrs[] = {
 	&online_cpus.attr,
 	&global_state.attr,
 	&not_preferred.attr,
-	&cctoggle.attr,
+	&disable.attr,
 	&always_online_cpu.attr,
 	NULL
 };
@@ -827,9 +794,9 @@ static void wake_up_hotplug_thread(struct cpu_data *state)
 	struct cpu_data *pcpu;
 	bool no_wakeup = false;
 
-if (unlikely(state->cctoggle))
+	if (unlikely(state->disabled))
 		return;
-		
+
 	for_each_possible_cpu(cpu) {
 		pcpu = &per_cpu(cpu_state, cpu);
 		if (cpu != pcpu->first_cpu)
@@ -858,7 +825,7 @@ static void core_ctl_timer_func(unsigned long cpu)
 	struct cpu_data *state = &per_cpu(cpu_state, cpu);
 	unsigned long flags;
 
-	if (eval_need(state) && !state->cctoggle) {
+	if (eval_need(state) && !state->disabled) {
 		spin_lock_irqsave(&state->pending_lock, flags);
 		state->pending = true;
 		spin_unlock_irqrestore(&state->pending_lock, flags);
@@ -1038,7 +1005,7 @@ static int __ref cpu_callback(struct notifier_block *nfb,
 		 * so that there's no race with hotplug thread bringing up more
 		 * CPUs than necessary.
 		 */
-		if (!f->cctoggle &&
+		if (!f->disabled &&
 			apply_limits(f, f->need_cpus) <= f->online_cpus) {
 			pr_debug("Prevent CPU%d onlining\n", cpu);
 			ret = NOTIFY_BAD;
