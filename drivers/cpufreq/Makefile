@@ -18,6 +18,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_COMMON)	    += cpufreq_governor.o
 obj-$(CONFIG_CPU_FREQ_GOV_RELAXED)	    += cpufreq_relaxed.o
 obj-$(CONFIG_CPU_FREQ_GOV_SMARTMAX_EPS) += cpufreq_smartmax_eps.o
 obj-$(CONFIG_CPU_FREQ_GOV_IMPULSE)	    += cpufreq_impulse.o
+obj-$(CONFIG_CPU_FREQ_GOV_ZZMOOVE)      += cpufreq_zzmoove.o
 obj-$(CONFIG_CPU_BOOST)			+= cpu-boost.o
 
 obj-$(CONFIG_GENERIC_CPUFREQ_CPU0)	+= cpufreq-cpu0.o
